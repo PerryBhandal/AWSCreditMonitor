@@ -1,5 +1,7 @@
 import config
 
+import re
+
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchFrameException, NoSuchElementException
@@ -8,6 +10,12 @@ from selenium.common.exceptions import NoSuchFrameException, NoSuchElementExcept
 # Selector Config 
 ##########
 
+# Once logged in, we redirect to this page to scrape.
+SCRAPE_PAGE = "https://console.aws.amazon.com/billing/home?#/credits"
+
+# Selector for balance field:
+BALANCE_SELECTOR = "td.credits-priority-2:nth-child(3)"
+TOTAL_SELECTOR = "td.credits-priority-2:nth-child(2)"
 
 class AWSBrowser():
     """
@@ -33,6 +41,7 @@ class AWSBrowser():
         # TODO: Add error check.
         self.__createBrowser()
         self.__login()
+        return self.__scrapeCredits()
 
     def __createBrowser(self):
         self.driver = webdriver.Firefox()
@@ -50,6 +59,40 @@ class AWSBrowser():
 
         # Submit form
         self.driver.find_element_by_id('signInSubmit-input').click()
+
+    def __scrapeCredits(self):
+        self.driver.get(SCRAPE_PAGE)
+
+        # Scrape out the string representation of our credit.balance
+        balanceText = self.driver.find_element_by_css_selector(BALANCE_SELECTOR).text
+        totalText = self.driver.find_element_by_css_selector(TOTAL_SELECTOR).text
+
+        balanceCents = CurrencyConverter.getStringCents(balanceText)
+        totalCents = CurrencyConverter.getStringCents(totalText)
+
+        return [balanceCents, totalCents]
+
+class CurrencyConverter():
+
+    @staticmethod
+    def getStringCents(toParse):
+        """
+        Parses a provided value and returns the number of cents.
+
+        For example, "$3.52" would return 232.
+        """
+        # Parse out the dollars and cents
+        matchObj = re.match(r'\$(\d+)\.(\d+)', toParse)
+
+        if matchObj.lastindex != 2:
+            # Got more/less matches than anticipated.
+            # TODO: Throw an exception here.
+            pass
+
+        dollars = int(matchObj.group(1))
+        cents = int(matchObj.group(2))
+
+        return (dollars*100)+cents
 
 for account in config.ACCOUNTS:
     email = account[0]
