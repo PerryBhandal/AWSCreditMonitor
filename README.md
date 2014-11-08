@@ -6,9 +6,20 @@ AWSCreditMonitor allows you to easily check your AWS credit data across one or m
 INSTALLATION
 ===============
 
+EasySetup
+---------------
+EasySetup is required to enable Selenium installation. If you already
+have Selenium installed, you can skip EasySetup's installation.
+
+You can install EasySetup by doing the following:
+
+1) Download EasySetup: https://bootstrap.pypa.io/ez_setup.py
+
+2) Run "python ez_setup.py"
+
 Selenium
 ---------------
-AWSCreditMonitor requires that the Selenium library be installed. It handles creating our
+Selenium is required by AWSCreditMonitor. It handles creating our
 web driver and is used to log in to AWS and scrape the necessary data.
 
 You can install Selenium by doing the following:
