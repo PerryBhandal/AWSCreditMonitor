@@ -17,6 +17,11 @@ LOGIN_FIELD_SUBMIT = 'signInSubmit-input'
 
 ## Credit Page
 CREDIT_URL = "https://console.aws.amazon.com/billing/home?region=us-east-1#/credits"
+CREDIT_TABLE_SELECTOR = ".credits-table"
+CREDIT_TABLE_ROW_SELECTOR = ".credits-table tbody tr" 
+
+# Wait this long after a failed get attempt before trying again.
+RECONNECT_INTERVAL = 0.5
 
 class AWSBrowser():
     """
@@ -62,9 +67,7 @@ class AWSBrowser():
 
     def __verifyLogin(self):
         if "Sign In" in self.driver.title:
-            # Haven't successfully logged in.
-            #TODO: Throw exception here instead.
-            pass
+            raise RuntimeError("Sign In Failed")
 
     def __scrapeCreditPage(self):
         creditInfo = []
@@ -73,7 +76,7 @@ class AWSBrowser():
 
         self.__creditTableLoaded()
 
-        tableRows = self.driver.find_elements(By.CSS_SELECTOR, ".credits-table tbody tr")
+        tableRows = self.driver.find_elements(By.CSS_SELECTOR, CREDIT_TABLE_ROW_SELECTOR)
 
         for row in tableRows:
             columns = row.find_elements(By.TAG_NAME, "td")
@@ -87,8 +90,8 @@ class AWSBrowser():
     def __creditTableLoaded(self):
         loadFails = 0
 
-        while loadFails < 10:
-            creditTableList = self.driver.find_elements(By.CSS_SELECTOR, ".credits-table")
+        while loadFails < config.MAX_ATTEMPTS:
+            creditTableList = self.driver.find_elements(By.CSS_SELECTOR, CREDIT_TABLE_SELECTOR)
 
             if len(creditTableList) == 0:
                 loadFails += 1
@@ -96,9 +99,7 @@ class AWSBrowser():
             else:
                 return True
 
-        #TODO: Put an error here.
-        print "Table load failed."
-
+        raise RuntimeError("Failed to load account after %d tries." % (loadFails))
 
 for account in config.ACCOUNTS:
     browser = AWSBrowser(account[0], account[1])
