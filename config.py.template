@@ -1,4 +1,4 @@
-MAX_ATTEMPTS=5
+MAX_ATTEMPTS=15
 
 ACCOUNTS = [
     ["username", "password"]
