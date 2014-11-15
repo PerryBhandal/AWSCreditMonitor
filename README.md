@@ -3,7 +3,7 @@ AWSCreditMonitor
 
 AWSCreditMonitor allows you to easily check your AWS credit data across one or more accounts.
 
-INSTALLATION
+Installation
 ===============
 
 EasySetup
@@ -29,3 +29,10 @@ You can install Selenium by doing the following:
 2) Extract Selenium
 
 3) Go into the extracted directory and run "python setup.py install"
+
+Configuration and Use
+===============
+
+1) Copy config.py.template to config.py. Open the file and add the relevant accounts (one account per list entry)
+
+2) Run python aws_credit_monitor.py. It'll log each account in, and print the relevant credit details.
