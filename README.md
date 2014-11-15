@@ -33,6 +33,6 @@ You can install Selenium by doing the following:
 Configuration and Use
 ===============
 
-1) Copy config.py.template to config.py. Open the file and add the relevant accounts (one account per list entry)
+1) Copy config.py.template to config.py. Open the file and add the accounts to check (one account per list entry)
 
 2) Run python aws_credit_monitor.py. It'll log each account in, and print the relevant credit details.
