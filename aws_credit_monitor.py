@@ -1,26 +1,27 @@
 import config
-
-import re
+import time
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import NoSuchFrameException, NoSuchElementException
 
-###########
-# Selector Config 
-##########
+from selenium.webdriver.common.by import By
 
-# Once logged in, we redirect to this page to scrape.
-SCRAPE_PAGE = "https://console.aws.amazon.com/billing/home?#/credits"
+##### Selector Constants
 
-# Selector for balance field:
-BALANCE_SELECTOR = "td.credits-priority-2:nth-child(3)"
-TOTAL_SELECTOR = "td.credits-priority-2:nth-child(2)"
+## Login Form
+LOGIN_FORM_URL = "https://console.aws.amazon.com/?nc2=h_m_mc"
+LOGIN_FIELD_EMAIL = 'ap_email'
+LOGIN_FIELD_PASSWORD = 'ap_password'
+LOGIN_FIELD_SUBMIT = 'signInSubmit-input'
+
+## Credit Page
+CREDIT_URL = "https://console.aws.amazon.com/billing/home?region=us-east-1#/credits"
 
 class AWSBrowser():
     """
-    AWSBrowser wraps a single browser and represents a single
-    attempt to scrape credit data.
+    AWSBrowser wraps the Selenium driver and provides the functionality for a single
+    scrape attempt.
     """
 
     def __init__(self, username, password):
@@ -28,75 +29,78 @@ class AWSBrowser():
         self.password = password
 
     def getCreditData(self):
-        """
-        getCreditData runs a single scrape attempt on AWS.
-
-        If successful it returns a list containing two elements:
-        
-        [0]: Credits used (cents)
-        [1]: Total credits (cents)
-
-        If it fails, it throws an AWSBrowserException
-        """
-        # TODO: Add error check.
         self.__createBrowser()
         self.__login()
-        return self.__scrapeCredits()
+        scrapedCredits = self.__scrapeCreditPage()
+        
+        for credit in scrapedCredits:
+            print "--- Credit Entry ---"
+            print "Owner: %s" % (self.username)
+            print "Credit Name: %s" % (credit[0])
+            print "Credit: %s used of %s" % (credit[1], credit[2])
+
+    def closeBrowser(self):
+        self.driver.quit()
 
     def __createBrowser(self):
         self.driver = webdriver.Firefox()
 
     def __login(self):
-        # Go to login page
-        self.driver.get("https://console.aws.amazon.com/?nc2=h_m_mc")
+        self.driver.get(LOGIN_FORM_URL)
 
-        # Enter username and password
-        userField = self.driver.find_element_by_id('ap_email')
+        # Enter username and password.
+        userField = self.driver.find_element_by_id(LOGIN_FIELD_EMAIL)
         userField.send_keys(self.username)
 
-        passField = self.driver.find_element_by_id('ap_password')
+        passField = self.driver.find_element_by_id(LOGIN_FIELD_PASSWORD)
         passField.send_keys(self.password)
 
-        # Submit form
-        self.driver.find_element_by_id('signInSubmit-input').click()
+        # Submit
+        self.driver.find_element_by_id(LOGIN_FIELD_SUBMIT).click()
 
-    def __scrapeCredits(self):
-        self.driver.get(SCRAPE_PAGE)
+        self.__verifyLogin()
 
-        # Scrape out the string representation of our credit.balance
-        balanceText = self.driver.find_element_by_css_selector(BALANCE_SELECTOR).text
-        totalText = self.driver.find_element_by_css_selector(TOTAL_SELECTOR).text
-
-        balanceCents = CurrencyConverter.getStringCents(balanceText)
-        totalCents = CurrencyConverter.getStringCents(totalText)
-
-        return [balanceCents, totalCents]
-
-class CurrencyConverter():
-
-    @staticmethod
-    def getStringCents(toParse):
-        """
-        Parses a provided value and returns the number of cents.
-
-        For example, "$3.52" would return 232.
-        """
-        # Parse out the dollars and cents
-        matchObj = re.match(r'\$(\d+)\.(\d+)', toParse)
-
-        if matchObj.lastindex != 2:
-            # Got more/less matches than anticipated.
-            # TODO: Throw an exception here.
+    def __verifyLogin(self):
+        if "Sign In" in self.driver.title:
+            # Haven't successfully logged in.
+            #TODO: Throw exception here instead.
             pass
 
-        dollars = int(matchObj.group(1))
-        cents = int(matchObj.group(2))
+    def __scrapeCreditPage(self):
+        creditInfo = []
 
-        return (dollars*100)+cents
+        self.driver.get(CREDIT_URL)
+
+        self.__creditTableLoaded()
+
+        tableRows = self.driver.find_elements(By.CSS_SELECTOR, ".credits-table tbody tr")
+
+        for row in tableRows:
+            columns = row.find_elements(By.TAG_NAME, "td")
+            creditName = columns[1].get_attribute('innerHTML')
+            creditUsed = columns[2].get_attribute('innerHTML')
+            creditTotal = columns[3].get_attribute('innerHTML')
+            creditInfo.append([creditName, creditUsed, creditTotal])
+
+        return creditInfo
+
+    def __creditTableLoaded(self):
+        loadFails = 0
+
+        while loadFails < 10:
+            creditTableList = self.driver.find_elements(By.CSS_SELECTOR, ".credits-table")
+
+            if len(creditTableList) == 0:
+                loadFails += 1
+                time.sleep(0.5)
+            else:
+                return True
+
+        #TODO: Put an error here.
+        print "Table load failed."
+
 
 for account in config.ACCOUNTS:
-    email = account[0]
-    password = account[1]
-    print "Scraping credit data for %s" % (email)
-    AWSBrowser(email, password).getCreditData()
-
+    browser = AWSBrowser(account[0], account[1])
+    browser.getCreditData()
+    browser.closeBrowser()
