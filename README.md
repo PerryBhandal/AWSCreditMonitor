@@ -6,6 +6,8 @@ AWSCreditMonitor allows you to easily check your AWS credit data across one or m
 Installation
 ===============
 
+Note: Firefox is required to use AWSCreditMonitor. 
+
 EasySetup
 ---------------
 EasySetup is required to enable Selenium installation. If you already
