@@ -19,9 +19,7 @@ LOGIN_FIELD_SUBMIT = 'signInSubmit-input'
 CREDIT_URL = "https://console.aws.amazon.com/billing/home?region=us-east-1#/credits"
 CREDIT_TABLE_SELECTOR = ".credits-table"
 CREDIT_TABLE_ROW_SELECTOR = ".credits-table tbody tr" 
-
-# Wait this long after a failed get attempt before trying again.
-RECONNECT_INTERVAL = 0.5
+CREDIT_TABLE_CHECK_INTERVAL = 0.5
 
 class AWSBrowser():
     """
@@ -34,6 +32,10 @@ class AWSBrowser():
         self.password = password
 
     def getCreditData(self):
+        """
+        Scrapes credit data for the AWS account represented by this instance, and then
+        prints each credit entry to stdout
+        """
         self.__createBrowser()
         self.__login()
         scrapedCredits = self.__scrapeCreditPage()
@@ -70,14 +72,20 @@ class AWSBrowser():
             raise RuntimeError("Sign In Failed")
 
     def __scrapeCreditPage(self):
+        """
+        Scrapes credit entries from the credits page. Returns a list of
+        lists, each list element representing a single credit entry.
+        """
         creditInfo = []
 
         self.driver.get(CREDIT_URL)
 
         self.__creditTableLoaded()
 
+        # Retrieve all rows from the credit table excluding the rows in thead.
         tableRows = self.driver.find_elements(By.CSS_SELECTOR, CREDIT_TABLE_ROW_SELECTOR)
 
+        # Extract credit data
         for row in tableRows:
             columns = row.find_elements(By.TAG_NAME, "td")
             creditName = columns[1].get_attribute('innerHTML')
@@ -88,14 +96,21 @@ class AWSBrowser():
         return creditInfo
 
     def __creditTableLoaded(self):
+        """
+        Verify that the credit table has been loaded. This is necessary as it's
+        loaded via AJAX, but Selenium doesn't factor pending AJAX loads before
+        considering a get to be complete.
+        """
         loadFails = 0
 
         while loadFails < config.MAX_ATTEMPTS:
+            # See if the credit table exists yet.
             creditTableList = self.driver.find_elements(By.CSS_SELECTOR, CREDIT_TABLE_SELECTOR)
 
             if len(creditTableList) == 0:
+                # No credit table list was found.
                 loadFails += 1
-                time.sleep(0.5)
+                time.sleep(CREDIT_TABLE_CHECK_INTERVAL)
             else:
                 return True
 
