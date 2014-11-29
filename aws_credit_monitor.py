@@ -20,6 +20,10 @@ CREDIT_URL = "https://console.aws.amazon.com/billing/home?region=us-east-1#/cred
 CREDIT_TABLE_SELECTOR = ".credits-table"
 CREDIT_TABLE_ROW_SELECTOR = ".credits-table tbody tr" 
 
+## Bill Page
+BILL_URL = "https://console.aws.amazon.com/billing/home?region=us-west-1#/bill"
+BILL_LOAD_CHECK_SELECTOR = ".bill-table"
+
 ## Selector Checks
 SELECTOR_CHECK_INTERVAL = 0.5
 
@@ -41,6 +45,7 @@ class AWSBrowser():
         self.__createBrowser()
         self.__login()
         scrapedCredits = self.__scrapeCreditPage()
+        self.__scrapeCreditPage
         
         for credit in scrapedCredits:
             print "--- Credit Entry ---"
@@ -72,6 +77,13 @@ class AWSBrowser():
     def __verifyLogin(self):
         if "Sign In" in self.driver.title:
             raise RuntimeError("Sign In Failed")
+
+    def __scrapeBillPage(self):
+        """
+        Scrapes current month entries from the bill page.
+        """
+        self.driver.get(BILL_URL)
+        self.__verifyElementLoad(BILL_LOAD_CHECK_SELECTOR)
 
     def __scrapeCreditPage(self):
         """
