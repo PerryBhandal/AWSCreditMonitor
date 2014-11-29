@@ -19,7 +19,9 @@ LOGIN_FIELD_SUBMIT = 'signInSubmit-input'
 CREDIT_URL = "https://console.aws.amazon.com/billing/home?region=us-east-1#/credits"
 CREDIT_TABLE_SELECTOR = ".credits-table"
 CREDIT_TABLE_ROW_SELECTOR = ".credits-table tbody tr" 
-CREDIT_TABLE_CHECK_INTERVAL = 0.5
+
+## Selector Checks
+SELECTOR_CHECK_INTERVAL = 0.5
 
 class AWSBrowser():
     """
@@ -80,7 +82,7 @@ class AWSBrowser():
 
         self.driver.get(CREDIT_URL)
 
-        self.__creditTableLoaded()
+        self.__verifyElementLoad(CREDIT_TABLE_SELECTOR)
 
         # Retrieve all rows from the credit table excluding the rows in thead.
         tableRows = self.driver.find_elements(By.CSS_SELECTOR, CREDIT_TABLE_ROW_SELECTOR)
@@ -95,26 +97,26 @@ class AWSBrowser():
 
         return creditInfo
 
-    def __creditTableLoaded(self):
+    def __verifyElementLoad(self, selector):
         """
-        Verify that the credit table has been loaded. This is necessary as it's
+        Verify that the given selector has been loaded. This is necessary as it's
         loaded via AJAX, but Selenium doesn't factor pending AJAX loads before
         considering a get to be complete.
         """
         loadFails = 0
 
         while loadFails < config.MAX_ATTEMPTS:
-            # See if the credit table exists yet.
-            creditTableList = self.driver.find_elements(By.CSS_SELECTOR, CREDIT_TABLE_SELECTOR)
+            # See if selector has been found yet
+            selectorResult = self.driver.find_elements(By.CSS_SELECTOR, selector)
 
-            if len(creditTableList) == 0:
-                # No credit table list was found.
+            if len(selectorResult) == 0:
+                # Selector was not found.
                 loadFails += 1
-                time.sleep(CREDIT_TABLE_CHECK_INTERVAL)
+                time.sleep(SELECTOR_CHECK_INTERVAL)
             else:
                 return True
 
-        raise RuntimeError("Failed to load account after %d tries." % (loadFails))
+        raise RuntimeError("Failed to load page after %d tries. Was searching for selector %s" % (loadFails, selector))
 
 for account in config.ACCOUNTS:
     browser = AWSBrowser(account[0], account[1])
