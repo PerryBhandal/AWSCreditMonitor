@@ -23,6 +23,7 @@ CREDIT_TABLE_ROW_SELECTOR = ".credits-table tbody tr"
 ## Bill Page
 BILL_URL = "https://console.aws.amazon.com/billing/home?region=us-west-1#/bill"
 BILL_LOAD_CHECK_SELECTOR = ".bill-table"
+BILL_ROW_SELECTOR = ".nested-column"
 
 ## Selector Checks
 SELECTOR_CHECK_INTERVAL = 0.5
@@ -45,7 +46,7 @@ class AWSBrowser():
         self.__createBrowser()
         self.__login()
         scrapedCredits = self.__scrapeCreditPage()
-        self.__scrapeCreditPage
+        self.__scrapeBillPage()
         
         for credit in scrapedCredits:
             print "--- Credit Entry ---"
@@ -84,6 +85,15 @@ class AWSBrowser():
         """
         self.driver.get(BILL_URL)
         self.__verifyElementLoad(BILL_LOAD_CHECK_SELECTOR)
+
+        # Retrieve all top-level rows. These are our categories.
+        topLevelRows = self.driver.find_elements(By.CSS_SELECTOR, BILL_ROW_SELECTOR)
+
+        print "Potential rows length is %d" % (len(potentialRows))
+
+        for row in potentialRows:
+            rowContent = row.get_attribute('innerHTML')
+            print "Row content is %s" % (rowContent)
 
     def __scrapeCreditPage(self):
         """
